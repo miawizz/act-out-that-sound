@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#127490" />
   <link rel="icon" type="image/png" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
-  <link rel="manifest" href="/act-out/manifest.webmanifest">
+<link rel="manifest" href="manifest.webmanifest">
 
   <style>
     :root{
@@ -273,17 +273,16 @@
   }
 </script>
 
-<!-- Core logic -->
-<script src="app.js" type="module"></script>
-
-<!-- Service worker (adjust scope to your path) -->
-<script>
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('/act-out/service-worker.js', { scope:'/act-out/' })
-        .catch(err => console.log('SW failed', err));
-    });
-  }
-</script>
+   <!-- Register the service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js')
+          .catch(function(err) {
+            console.log('Service worker registration failed:', err);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
