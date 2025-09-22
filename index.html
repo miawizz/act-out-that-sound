@@ -1,12 +1,289 @@
-{
-  "name": "Act Out That Sound",
-  "short_name": "ActOut",
-  "start_url": "/act-out/",
-  "display": "standalone",
-  "background_color": "#fff9f3",
-  "theme_color": "#127490",
-  "icons": [
-    { "src": "/act-out/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/act-out/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Act Out That Sound</title>
+
+  <!-- Brand + PWA -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#127490" />
+  <link rel="icon" type="image/png" href="/act-out/icon-192.png">
+  <link rel="apple-touch-icon" href="/act-out/icon-192.png">
+  <link rel="manifest" href="/act-out/manifest.webmanifest">
+
+  <style>
+    :root{
+      --cream:#fff9f3; --ink:#18323b; --brand:#127490; --accent:#d9648a; --accent-2:#b24627;
+      --dash:#f8b934; --muted:#6b7f88;
+    }
+    body{
+      background:var(--cream); color:var(--ink);
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      text-align:center; padding:2rem; margin:0;
+    }
+    .logo{max-width:150px; margin-bottom:1rem; border-radius:16px}
+    h1{color:var(--brand); margin:.25rem 0 .5rem; font-weight:800; font-size:1.6rem}
+
+    /* Instructions card */
+    .card{
+      margin:1rem auto 0; max-width:900px; text-align:left;
+      background:#fff; border:1px solid #eee; border-radius:16px; padding:1rem 1.25rem;
+      box-shadow:0 4px 10px rgba(0,0,0,.06);
+    }
+    .card h2{margin:.25rem 0 .5rem; font-size:1.15rem; color:var(--brand)}
+    .card ol{margin:.25rem 0 .25rem 1.25rem}
+    .card li{margin:.25rem 0}
+
+    /* Controls */
+    .btns{display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin-top:1rem}
+    button{
+      background:var(--accent); color:#fff; border:0; padding:1rem 1.2rem; border-radius:30px;
+      font-size:1.05rem; cursor:pointer; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.08);
+    }
+    button:hover{background:#c95e3c}
+    button[disabled]{opacity:.5; cursor:not-allowed}
+    .btn-secondary{background:#ffe9d6; color:#6b3a28}
+    .btn-secondary:hover{background:#ffdcbf}
+    .btn-ghost{background:transparent; color:var(--ink); border:2px dashed var(--dash)}
+
+    #status{color:var(--muted); margin:.5rem 0 0}
+    #cover{width:250px; margin-top:2rem; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,.1)}
+
+    /* Gate notice */
+    #notice,#app{display:none}
+    #notice{
+      display:block; max-width:520px; margin:2rem auto 0; text-align:left;
+      background:#fff; padding:1.2rem 1.25rem; border-radius:16px; box-shadow:0 4px 10px rgba(0,0,0,.1);
+    }
+    #notice h2{margin:.25rem 0 .5rem; font-size:1.2rem; color:var(--brand)}
+    #notice p{color:#5a6b75}
+
+    /* Footer area */
+    footer{font-size:.9rem; color:#777; margin-top:2.5rem; max-width:90%; margin-left:auto; margin-right:auto}
+
+    /* Tiny toast */
+    #toast{
+      position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+      background:var(--brand); color:#fff; padding:10px 14px; border-radius:12px;
+      box-shadow:0 8px 24px rgba(0,0,0,.18); opacity:0; pointer-events:none;
+      transition:opacity .25s ease, transform .25s ease; font-size:.95rem; z-index:9999;
+    }
+    #toast.show{opacity:1; transform:translateX(-50%) translateY(-4px)}
+  </style>
+</head>
+<body>
+
+<!-- install-help bar copied from YOU ARE, namespaced for this app -->
+<style>
+  .install-help{position:sticky;top:0;z-index:10001;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .install-help__wrap{background:#fff7f4;border-bottom:1px solid #f2e7e3}
+  .install-help__summary{display:flex;align-items:center;gap:.5rem;padding:.55rem .85rem;cursor:pointer;font-size:.95rem}
+  .install-help__summary:hover{background:#fff3ee}
+  summary.install-help__wrap::-webkit-details-marker{display:none}
+  summary.install-help__wrap::marker{content:'';font-size:0}
+  .install-help__summary .caret{transition:transform .2s ease;width:var(--caret-size,40px);height:var(--caret-size,40px)}
+  details[open] .install-help__summary .caret{transform:rotate(180deg)}
+  details[open] .install-help__wrap{box-shadow:inset 0 -1px 0 #e7d8d3,0 1px 0 #e7d8d3}
+  .install-help__panel{padding:.75rem .9rem .95rem .9rem;display:grid;gap:.75rem}
+  .install-help__panel h4{margin:.25rem 0 .25rem 0;font-size:.95rem}
+  .install-help__panel p{margin:0 0 .35rem 0;font-size:.9rem}
+  .install-help__close{all:unset;display:inline-grid;place-items:center;width:32px;height:32px;cursor:pointer;color:#000;line-height:1;font-weight:700}
+  .install-help__tips{font-size:.85rem;opacity:.9}
+  .install-help__box{border:1px solid #efdfda;background:#fff;border-radius:.65rem;padding:.65rem .75rem}
+  .install-help__steps{margin:.25rem 0 0 1.15rem}
+  .install-help__steps li{margin:.25rem 0}
+  .install-help__never{align-self:start;border:0;background:transparent;padding:0;font:inherit;color:#6b7f88;text-decoration:underline;cursor:pointer}
+  .hidden{display:none}
+  .install-help.gate-hide{display:none}
+  @media (prefers-reduced-motion: reduce){.install-help__summary .caret{transition:none}}
+</style>
+
+<details class="install-help" id="install-help" data-dismiss-key="aots-install-tip">
+  <summary class="install-help__wrap">
+    <div class="install-help__summary" role="button" aria-expanded="false">
+      <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5z"></path></svg>
+      <strong>Tap here for a reminder of how to save this app to your home screen</strong>
+      <button class="install-help__close" type="button" title="Hide">✖</button>
+    </div>
+  </summary>
+  <div class="install-help__panel" id="install-help-panel" aria-live="polite">
+    <div class="install-help__box" id="ios-safari" hidden>
+      <h4>iPhone or iPad using Safari</h4>
+      <ol class="install-help__steps">
+        <li>Tap the Share icon at the bottom of Safari</li>
+        <li>Choose <em>Add to Home Screen</em></li>
+        <li>Tap <em>Add</em></li>
+      </ol>
+    </div>
+    <div class="install-help__box" id="ios-chrome" hidden>
+      <h4>iPhone or iPad using Chrome</h4>
+      <ol class="install-help__steps">
+        <li>Tap the Share icon in the top right</li>
+        <li>Scroll and choose <em>Add to Home Screen</em></li>
+        <li>Tap <em>Add</em></li>
+      </ol>
+      <p class="install-help__tips">If you do not see this option, open the app in Safari and use the same steps</p>
+    </div>
+    <div class="install-help__box" id="android-chrome" hidden>
+      <h4>Android using Chrome</h4>
+      <ol class="install-help__steps">
+        <li>Tap the three dot menu in the top right</li>
+        <li>Choose <em>Install app</em> or <em>Add to Home screen</em></li>
+        <li>Confirm <em>Install</em></li>
+      </ol>
+      <p class="install-help__tips">You may also see an <em>Install</em> button in the address bar</p>
+    </div>
+    <div class="install-help__box" id="android-samsung" hidden>
+      <h4>Android using Samsung Internet</h4>
+      <ol class="install-help__steps">
+        <li>Tap the menu button</li>
+        <li>Select <em>Add page to</em> then <em>Home screen</em></li>
+        <li>Confirm</li>
+      </ol>
+    </div>
+    <div class="install-help__box" id="other-browsers" hidden>
+      <h4>Other browsers</h4>
+      <p>Look in the browser menu for <em>Install</em> or <em>Add to Home Screen</em></p>
+    </div>
+    <p class="install-help__tips">Installing adds an icon to your home screen and makes it function like an app</p>
+    <button type="button" id="install-help-never" class="install-help__never">Don’t show this again</button>
+  </div>
+</details>
+
+<script>
+(function(){
+  const root = document.getElementById('install-help');
+  const panel = document.getElementById('install-help-panel');
+  const closeBtn = root.querySelector('.install-help__close');
+  const key = root.getAttribute('data-dismiss-key') || 'aots-install-tip';
+
+  // allow reset via ?reset_install_tip=1
+  try{ if(new URLSearchParams(location.search).get('reset_install_tip')==='1'){ localStorage.removeItem(key); } }catch(e){}
+
+  if(localStorage.getItem(key)==='1'){ root.classList.add('hidden'); }
+
+  closeBtn.addEventListener('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    localStorage.setItem(key,'1'); root.classList.add('hidden');
+  });
+
+  document.getElementById('install-help-never').addEventListener('click', function(){
+    localStorage.setItem(key,'1'); root.classList.add('hidden');
+  });
+
+  // platform detect
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const isAndroid = /Android/i.test(ua);
+  const isSamsung = /SamsungBrowser/i.test(ua);
+  const isCriOS = /CriOS/i.test(ua);
+  const isFxiOS = /FxiOS/i.test(ua);
+  const isSafari = isIOS && /Safari/i.test(ua) && !isCriOS && !isFxiOS;
+  const isChromeAndroid = isAndroid && /Chrome/i.test(ua) && !isSamsung;
+
+  function show(id){ const el=document.getElementById(id); if(el) el.hidden=false; }
+  if(isIOS && isSafari) show('ios-safari');
+  else if(isIOS && isCriOS) show('ios-chrome');
+  else if(isAndroid && isSamsung) show('android-samsung');
+  else if(isChromeAndroid) show('android-chrome');
+  else show('other-browsers');
+
+  const summary = root.querySelector('summary');
+  const label = root.querySelector('.install-help__summary strong');
+  const closedText = 'Tap here for a reminder of how to save this app to your home screen';
+  const openText = 'Hide instructions';
+  root.addEventListener('toggle', function(){
+    const exp = root.open ? 'true' : 'false';
+    const btn = root.querySelector('.install-help__summary');
+    btn && btn.setAttribute('aria-expanded', exp);
+    if(label) label.textContent = root.open ? openText : closedText;
+  });
+})();
+</script>
+
+<script>
+/* Gate the install bar until user accepts the welcome */
+(function(){
+  const bar = document.getElementById('install-help');
+  if(!bar) return;
+  if(localStorage.getItem('aots_ack') !== 'yes'){ bar.classList.add('gate-hide'); }
+  window.addEventListener('DOMContentLoaded', function(){
+    const ackBtn = document.getElementById('ackBtn');
+    if(ackBtn){
+      ackBtn.addEventListener('click', function(){
+        setTimeout(function(){
+          if(localStorage.getItem('aots_ack')==='yes'){ bar.classList.remove('gate-hide'); }
+        },0);
+      });
+    }
+  });
+})();
+</script>
+
+<!-- Courtesy / notice gate -->
+<div id="notice">
+  <h2>Thanks for Supporting This Work</h2>
+  <p>This app is for personal use only by purchasers from <strong>Playful Heart Parenting</strong>. Please do not share this link publicly.</p>
+  <button id="ackBtn" onclick="ack()">Got it</button>
+</div>
+
+<!-- App UI -->
+<div id="app" aria-live="polite">
+  <img src="assets/tile.png" alt="Act Out That Sound" class="logo" />
+  <h1>Act Out That Sound</h1>
+
+  <div class="card" role="region" aria-label="How to play">
+    <h2>How to play</h2>
+    <ol>
+      <li>Tap <strong>Play</strong> to hear a surprise sound</li>
+      <li>Act it out with a face, lip sync, or full-body motion</li>
+      <li>Tap <strong>Replay</strong> to hear it again</li>
+      <li>Tap <strong>Next</strong> for a new surprise or <strong>Back</strong> to revisit</li>
+      <li>No repeats until the whole deck cycles</li>
+    </ol>
+  </div>
+
+  <div class="btns">
+    <button id="backBtn" class="btn-ghost">⟵ Back</button>
+    <button id="playBtn">▶ Play</button>
+    <button id="replayBtn" class="btn-secondary">↻ Replay</button>
+    <button id="nextBtn" class="btn-ghost">Next ⟶</button>
+  </div>
+  <p id="status">Ready</p>
+
+  <footer>
+    © 2025 Playful Heart Parenting. For personal use only by purchasers.
+  </footer>
+</div>
+
+<!-- Tiny toast -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // Gate like YOU ARE
+  function ack(){
+    localStorage.setItem('aots_ack','yes');
+    document.getElementById('notice').style.display='none';
+    document.getElementById('app').style.display='block';
+  }
+  if(localStorage.getItem('aots_ack')==='yes'){
+    document.getElementById('notice').style.display='none';
+    document.getElementById('app').style.display='block';
+  }
+</script>
+
+<!-- Core logic -->
+<script src="app.js" type="module"></script>
+
+<!-- Service worker (adjust scope to your path) -->
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/act-out/service-worker.js', { scope:'/act-out/' })
+        .catch(err => console.log('SW failed', err));
+    });
+  }
+</script>
+</body>
+</html>
