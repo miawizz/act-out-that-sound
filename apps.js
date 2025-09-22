@@ -1,3 +1,5 @@
+console.log("Act Out That Sound app.js loaded!");
+
 // Act Out That Sound — single-deck surprise flow
 
 // 1) List your sound files here (start with a few to test)
