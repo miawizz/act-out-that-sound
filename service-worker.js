@@ -1,69 +1,52 @@
-// service-worker.js
-const CACHE_CORE   = "aots-core-v1";
-const CACHE_SOUNDS = "aots-sounds-v1";
+// service-worker.js — minimal + safe
+const CACHE_CORE = 'aots-core-v3';
 
 const CORE_ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./app.js",
-  "./icon-192.png",
-  "./icon-512.png"
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './app.js',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-1024.png' // keep if you have it
 ];
 
-self.addEventListener("install", (event) => {
-  // Take control immediately and cache core assets
-  self.skipWaiting();
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_CORE).then((cache) => cache.addAll(CORE_ASSETS))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-  // Clean up old cache versions and take control of open clients
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => ![CACHE_CORE, CACHE_SOUNDS].includes(k))
-          .map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+      Promise.all(keys.filter((k) => k !== CACHE_CORE).map((k) => caches.delete(k)))
+    )
   );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
 
-  // Runtime cache for audio files
-  if (/\.(mp3|wav|ogg)$/i.test(url.pathname)) {
-    event.respondWith(
-      caches.open(CACHE_SOUNDS).then(async (cache) => {
-        const hit = await cache.match(request);
-        if (hit) return hit;
-        try {
-          const resp = await fetch(request);
-          if (resp && resp.ok) cache.put(request, resp.clone());
-          return resp;
-        } catch (err) {
-          // If offline and not cached yet
-          return hit || Response.error();
-        }
-      })
-    );
-    return;
-  }
+  // 🚫 Do NOT intercept/caches audio files; let the browser stream them directly
+  if (url.pathname.includes('/sounds/')) return;
 
-  // Network-first for everything else with cache fallback
+  // Only cache GET requests
+  if (req.method !== 'GET') return;
+
+  // Cache-first for the app shell
   event.respondWith(
-    fetch(request)
-      .then((resp) => {
-        if (request.method === "GET" && resp && resp.ok) {
-          caches.open(CACHE_CORE).then((cache) => cache.put(request, resp.clone()));
-        }
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((resp) => {
+        // Clone BEFORE caching to avoid "body used" error
+        const clone = resp.clone();
+        caches.open(CACHE_CORE).then((cache) => cache.put(req, clone));
         return resp;
-      })
-      .catch(() => caches.match(request))
+      }).catch(() => cached);
+    })
   );
 });
