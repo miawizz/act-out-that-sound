@@ -118,10 +118,9 @@ const sounds = [
   "sounds/zap.mp3"
 ];
 
-// 2) Grab UI
+// 2) Grab UI (no replay button)
 const el = {
   play:   document.getElementById("playBtn"),
-  replay: document.getElementById("replayBtn"),
   next:   document.getElementById("nextBtn"),
   back:   document.getElementById("backBtn"),
   status: document.getElementById("status")
@@ -165,6 +164,10 @@ function refillDeck() {
 
 function current(){ return hpos > 0 ? history[hpos-1] : null; }
 
+function updatePlayLabel(){
+  el.play.textContent = (hpos > 0) ? "▶ Play again" : "▶ Play";
+}
+
 async function playPath(path){
   if (!path) return;
   ensureUnlocked();
@@ -180,6 +183,7 @@ async function playPath(path){
 }
 
 async function onPlay(){
+  // First ever tap: pick a sound; otherwise just replay the same one
   if (hpos === 0){
     if (deck.length === 0) refillDeck();
     const first = deck.shift();
@@ -187,8 +191,8 @@ async function onPlay(){
     hpos = history.length;
   }
   await playPath(current());
+  updatePlayLabel();
 }
-async function onReplay(){ await playPath(current()); }
 async function onNext(){
   if (hpos < history.length) history = history.slice(0, hpos);
   if (deck.length === 0) refillDeck();
@@ -196,24 +200,27 @@ async function onNext(){
   history.push(pick);
   hpos = history.length;
   await playPath(current());
+  updatePlayLabel();
 }
 async function onBack(){
   if (hpos <= 1){ el.status.textContent = "Start reached"; return; }
   hpos -= 1;
   await playPath(current());
+  updatePlayLabel();
 }
 
-// Wire up
-el.play  .addEventListener('click', onPlay);
-el.replay.addEventListener('click', onReplay);
-el.next  .addEventListener('click', onNext);
-el.back  .addEventListener('click', onBack);
+// Wire up (no replay listener)
+el.play .addEventListener('click', onPlay);
+el.next .addEventListener('click', onNext);
+el.back .addEventListener('click', onBack);
 
-// Optional keyboard shortcuts
+// Optional keyboard shortcuts (remove 'r' for replay)
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (k === 'enter' || k === ' ') onPlay();
   if (k === 'arrowright') onNext();
   if (k === 'arrowleft') onBack();
-  if (k === 'r') onReplay();
 });
+
+// Set initial label
+updatePlayLabel();
