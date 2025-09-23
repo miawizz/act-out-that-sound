@@ -213,6 +213,8 @@ async function onBack(){
 el.play .addEventListener('click', onPlay);
 el.next .addEventListener('click', onNext);
 el.back .addEventListener('click', onBack);
+el.next.addEventListener('click', () => console.log('[Next] clicked (probe)'));
+
 
 // Optional keyboard shortcuts (remove 'r' for replay)
 document.addEventListener('keydown', e => {
