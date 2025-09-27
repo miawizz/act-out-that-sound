@@ -128,9 +128,10 @@ const el = {
 
 let unlocked = false;
 let deck = [];
-let history = [];  // array of file paths in order played
-let hpos = 0;      // cursor into history (0..history.length)
+let history = [];   // array of file paths in order played
+let hpos = 0;       // cursor into history (0..history.length)
 const cache = new Map();
+let currentAudio = null; // <- track the currently selected <audio>
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 
@@ -164,26 +165,56 @@ function refillDeck() {
 
 function current(){ return hpos > 0 ? history[hpos-1] : null; }
 
-function updatePlayLabel(){
-  el.play.textContent = (hpos > 0) ? "▶ Play again" : "▶ Play";
+function isPlaying(){ return currentAudio && !currentAudio.paused; }
+function stopCurrent(){
+  if (currentAudio){
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+}
+
+function setPlayLabel(){
+  if (isPlaying()){
+    el.play.textContent = "⏸ Pause";
+  } else {
+    el.play.textContent = (hpos > 0) ? "▶ Play again" : "▶ Play";
+  }
 }
 
 async function playPath(path){
   if (!path) return;
   ensureUnlocked();
+
   const audio = cache.get(path) || new Audio(path);
   cache.set(path, audio);
+
+  // If switching tracks, stop the previous one first
+  if (currentAudio && currentAudio !== audio){
+    stopCurrent();
+  }
+  currentAudio = audio;
+
   try {
     audio.currentTime = 0;
     await audio.play();
     el.status.textContent = `Playing ${path.split("/").pop()}`;
+    setPlayLabel(); // show "Pause" while playing
+    audio.onended = () => setPlayLabel(); // when finished, show "Play again"
   } catch {
     el.status.textContent = "Playback blocked. Tap again";
   }
 }
 
+// Play/Pause toggle:
+// - If nothing selected yet, pick the first card then play.
+// - If already playing, pause.
+// - If paused, resume same sound.
 async function onPlay(){
-  // First ever tap: pick a sound; otherwise just replay the same one
+  if (isPlaying()){
+    currentAudio.pause();
+    setPlayLabel();
+    return;
+  }
   if (hpos === 0){
     if (deck.length === 0) refillDeck();
     const first = deck.shift();
@@ -191,38 +222,51 @@ async function onPlay(){
     hpos = history.length;
   }
   await playPath(current());
-  updatePlayLabel();
 }
+
 async function onNext(){
+  // Stop anything currently playing
+  if (isPlaying()) stopCurrent();
+
+  // Trim forward history if we had gone back
   if (hpos < history.length) history = history.slice(0, hpos);
+
   if (deck.length === 0) refillDeck();
-  const pick = deck.shift();
+
+  const cur = current();
+  let pick = deck.shift();
+  // Avoid picking the same as current when possible
+  if (cur && pick === cur && deck.length) pick = deck.shift();
+
   history.push(pick);
   hpos = history.length;
   await playPath(current());
-  updatePlayLabel();
-}
-async function onBack(){
-  if (hpos <= 1){ el.status.textContent = "Start reached"; return; }
-  hpos -= 1;
-  await playPath(current());
-  updatePlayLabel();
 }
 
-// Wire up (no replay listener)
+async function onBack(){
+  if (hpos <= 1){
+    el.status.textContent = "Start reached";
+    setPlayLabel();
+    return;
+  }
+  if (isPlaying()) stopCurrent();
+  hpos -= 1;
+  await playPath(current());
+}
+
+// Wire up
 el.play .addEventListener('click', onPlay);
 el.next .addEventListener('click', onNext);
 el.back .addEventListener('click', onBack);
-el.next.addEventListener('click', () => console.log('[Next] clicked (probe)'));
 
-
-// Optional keyboard shortcuts (remove 'r' for replay)
+// Keyboard shortcuts: Space/Enter toggle play/pause; arrows for nav
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
-  if (k === 'enter' || k === ' ') onPlay();
+  if (k === ' ' || k === 'enter'){ e.preventDefault(); onPlay(); }
   if (k === 'arrowright') onNext();
   if (k === 'arrowleft') onBack();
 });
 
-// Set initial label
-updatePlayLabel();
+// Initial label
+setPlayLabel();
+
