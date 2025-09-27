@@ -226,18 +226,14 @@ const sounds = [
 const BAD_KEY = 'aots_bad';
 let BAD = new Set();
 try { BAD = new Set(JSON.parse(localStorage.getItem(BAD_KEY) || '[]')); } catch {}
-
-function saveBad() {
-  localStorage.setItem(BAD_KEY, JSON.stringify([...BAD]));
-}
-function markBad(path) {
+function saveBad(){ localStorage.setItem(BAD_KEY, JSON.stringify([...BAD])); }
+function markBad(path){
   if (!BAD.has(path)) {
     BAD.add(path);
     saveBad();
     console.warn('Marked bad sound:', path);
   }
 }
-
 
 // 2) Grab UI (no replay button)
 const el = {
@@ -252,7 +248,7 @@ let deck = [];
 let history = [];   // array of file paths in order played
 let hpos = 0;       // cursor into history (0..history.length)
 const cache = new Map();
-let currentAudio = null; // <- track the currently selected <audio>
+let currentAudio = null; // track the currently selected <audio>
 
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
 
@@ -273,12 +269,13 @@ function preload(paths){
 }
 preload(sounds);
 
+// Build a new deck excluding items already seen AND any known bad files
 function refillDeck() {
-  const remaining = sounds.filter(p => !history.includes(p));
+  const remaining = sounds.filter(p => !history.includes(p) && !BAD.has(p));
   if (remaining.length === 0){
     history = [];
     hpos = 0;
-    deck = shuffle([...sounds]);
+    deck = shuffle(sounds.filter(p => !BAD.has(p)));
   } else {
     deck = shuffle(remaining);
   }
@@ -315,14 +312,24 @@ async function playPath(path){
   }
   currentAudio = audio;
 
+  // If the element errors (404/unsupported), mark bad and skip forward
+  audio.onerror = async () => {
+    el.status.textContent = `Error playing ${path.split('/').pop()} — skipping`;
+    markBad(path);
+    await onNext();
+  };
+
   try {
     audio.currentTime = 0;
     await audio.play();
     el.status.textContent = `Playing ${path.split("/").pop()}`;
-    setPlayLabel(); // show "Pause" while playing
+    setPlayLabel();                 // show "Pause" while playing
     audio.onended = () => setPlayLabel(); // when finished, show "Play again"
   } catch {
-    el.status.textContent = "Playback blocked. Tap again";
+    // Autoplay/codec/404 — treat as bad and move on
+    el.status.textContent = `Error playing ${path.split('/').pop()} — skipping`;
+    markBad(path);
+    await onNext();
   }
 }
 
@@ -388,6 +395,48 @@ document.addEventListener('keydown', e => {
   if (k === 'arrowleft') onBack();
 });
 
+// --- Optional: quick scanner you can run from Console to find bad files ---
+function probeSound(path, timeout = 6000) {
+  return new Promise((resolve, reject) => {
+    const a = new Audio();
+    a.preload = 'auto';
+    a.src = path;
+
+    const done = (ok) => {
+      a.src = '';
+      clearTimeout(t);
+      ok ? resolve() : reject(new Error('unplayable'));
+    };
+
+    a.addEventListener('canplaythrough', () => done(true), { once: true });
+    a.addEventListener('error', () => done(false), { once: true });
+    a.load();
+
+    const t = setTimeout(() => done(false), timeout);
+  });
+}
+
+window.aotsScan = async function aotsScan() {
+  const bad = [];
+  let ok = 0;
+
+  for (const p of sounds) {
+    if (BAD.has(p)) { bad.push(p); continue; }
+    try { await probeSound(p); ok++; }
+    catch { bad.push(p); markBad(p); }
+  }
+
+  console.log('✅ OK count:', ok);
+  console.log('❌ Bad files:', bad);
+  try { await navigator.clipboard.writeText(bad.join('\n')); } catch {}
+  alert(`Scan complete.\nOK: ${ok}\nBad: ${bad.length}\n(Bad list copied to clipboard)`);
+};
+
+window.aotsClearBad = function(){
+  localStorage.removeItem(BAD_KEY);
+  BAD = new Set();
+  console.log('Cleared bad list');
+};
+
 // Initial label
 setPlayLabel();
-
