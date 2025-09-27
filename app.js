@@ -222,6 +222,22 @@ const sounds = [
   "sounds/Zzzz.mp3",
   "sounds/zap.mp3"
 ];
+// --- Bad sound tracking (persisted) ---
+const BAD_KEY = 'aots_bad';
+let BAD = new Set();
+try { BAD = new Set(JSON.parse(localStorage.getItem(BAD_KEY) || '[]')); } catch {}
+
+function saveBad() {
+  localStorage.setItem(BAD_KEY, JSON.stringify([...BAD]));
+}
+function markBad(path) {
+  if (!BAD.has(path)) {
+    BAD.add(path);
+    saveBad();
+    console.warn('Marked bad sound:', path);
+  }
+}
+
 
 // 2) Grab UI (no replay button)
 const el = {
