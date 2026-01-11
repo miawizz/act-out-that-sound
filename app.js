@@ -2,7 +2,7 @@ console.log("Act Out That Sound app.js loaded!");
 
 // Act Out That Sound — single-deck surprise flow
 
-// 1) List your sound files here (start with a few to test)
+// 1) List your sound files here (UNCHANGED)
 const sounds = [
   "sounds/animalmusic.mp3",
   "sounds/bark.mp3",
@@ -115,7 +115,7 @@ const sounds = [
   "sounds/yeahh.mp3",
   "sounds/yes.mp3",
   "sounds/yoink.mp3",
-  
+
   "sounds/Awshucks.mp3",
   "sounds/Baby1.mp3",
   "sounds/Babymeow.mp3",
@@ -222,7 +222,8 @@ const sounds = [
   "sounds/Zzzz.mp3",
   "sounds/zap.mp3"
 ];
-// --- Bad sound tracking (persisted) ---
+
+// --- Bad sound tracking (UNCHANGED) ---
 const BAD_KEY = 'aots_bad';
 let BAD = new Set();
 try { BAD = new Set(JSON.parse(localStorage.getItem(BAD_KEY) || '[]')); } catch {}
@@ -235,7 +236,7 @@ function markBad(path){
   }
 }
 
-// 2) Grab UI (no replay button)
+// 2) Grab UI
 const el = {
   play:   document.getElementById("playBtn"),
   next:   document.getElementById("nextBtn"),
@@ -245,34 +246,34 @@ const el = {
 
 let unlocked = false;
 let deck = [];
-let history = [];   // array of file paths in order played
-let hpos = 0;       // cursor into history (0..history.length)
-const cache = new Map();
-let currentAudio = null; // track the currently selected <audio>
+let history = [];
+let hpos = 0;
+let currentAudio = null;
 
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 
-function ensureUnlocked(){
+// Android-safe unlock
+async function ensureUnlocked(){
   if (unlocked) return;
-  const a = new Audio();
-  a.muted = true;
-  a.play().catch(()=>{}).finally(()=>{ unlocked = true; });
+  try {
+    const a = new Audio(sounds[0]);
+    await a.play();
+    a.pause();
+    a.currentTime = 0;
+    unlocked = true;
+  } catch {}
 }
 
-function preload(paths){
-  paths.forEach(p => {
-    if (cache.has(p)) return;
-    const a = new Audio(p);
-    a.preload = "auto";
-    cache.set(p, a);
-  });
-}
-preload(sounds);
-
-// Build a new deck excluding items already seen AND any known bad files
-function refillDeck() {
+// Build deck
+function refillDeck(){
   const remaining = sounds.filter(p => !history.includes(p) && !BAD.has(p));
-  if (remaining.length === 0){
+  if (!remaining.length){
     history = [];
     hpos = 0;
     deck = shuffle(sounds.filter(p => !BAD.has(p)));
@@ -281,13 +282,14 @@ function refillDeck() {
   }
 }
 
-function current(){ return hpos > 0 ? history[hpos-1] : null; }
-
+function current(){ return hpos > 0 ? history[hpos - 1] : null; }
 function isPlaying(){ return currentAudio && !currentAudio.paused; }
+
 function stopCurrent(){
   if (currentAudio){
     currentAudio.pause();
-    currentAudio.currentTime = 0;
+    currentAudio.src = '';
+    currentAudio = null;
   }
 }
 
@@ -301,18 +303,14 @@ function setPlayLabel(){
 
 async function playPath(path){
   if (!path) return;
-  ensureUnlocked();
 
-  const audio = cache.get(path) || new Audio(path);
-  cache.set(path, audio);
+  stopCurrent();
+  await ensureUnlocked();
 
-  // If switching tracks, stop the previous one first
-  if (currentAudio && currentAudio !== audio){
-    stopCurrent();
-  }
+  const audio = new Audio(path);
+  audio.preload = 'auto';
   currentAudio = audio;
 
-  // If the element errors (404/unsupported), mark bad and skip forward
   audio.onerror = async () => {
     el.status.textContent = `Error playing ${path.split('/').pop()} — skipping`;
     markBad(path);
@@ -320,23 +318,15 @@ async function playPath(path){
   };
 
   try {
-    audio.currentTime = 0;
     await audio.play();
-    el.status.textContent = `Playing ${path.split("/").pop()}`;
-    setPlayLabel();                 // show "Pause" while playing
-    audio.onended = () => setPlayLabel(); // when finished, show "Play again"
+    el.status.textContent = `Playing ${path.split('/').pop()}`;
+    setPlayLabel();
+    audio.onended = () => setPlayLabel();
   } catch {
-    // Autoplay/codec/404 — treat as bad and move on
-    el.status.textContent = `Error playing ${path.split('/').pop()} — skipping`;
-    markBad(path);
-    await onNext();
+    unlocked = false;
   }
 }
 
-// Play/Pause toggle:
-// - If nothing selected yet, pick the first card then play.
-// - If already playing, pause.
-// - If paused, resume same sound.
 async function onPlay(){
   if (isPlaying()){
     currentAudio.pause();
@@ -344,7 +334,7 @@ async function onPlay(){
     return;
   }
   if (hpos === 0){
-    if (deck.length === 0) refillDeck();
+    if (!deck.length) refillDeck();
     const first = deck.shift();
     history.push(first);
     hpos = history.length;
@@ -353,19 +343,12 @@ async function onPlay(){
 }
 
 async function onNext(){
-  // Stop anything currently playing
-  if (isPlaying()) stopCurrent();
-
-  // Trim forward history if we had gone back
+  stopCurrent();
   if (hpos < history.length) history = history.slice(0, hpos);
-
-  if (deck.length === 0) refillDeck();
-
+  if (!deck.length) refillDeck();
   const cur = current();
   let pick = deck.shift();
-  // Avoid picking the same as current when possible
   if (cur && pick === cur && deck.length) pick = deck.shift();
-
   history.push(pick);
   hpos = history.length;
   await playPath(current());
@@ -377,66 +360,18 @@ async function onBack(){
     setPlayLabel();
     return;
   }
-  if (isPlaying()) stopCurrent();
+  stopCurrent();
   hpos -= 1;
   await playPath(current());
 }
 
-// Wire up
-el.play .addEventListener('click', onPlay);
-el.next .addEventListener('click', onNext);
-el.back .addEventListener('click', onBack);
+// Events
+el.play.addEventListener('click', onPlay);
+el.next.addEventListener('click', onNext);
+el.back.addEventListener('click', onBack);
 
-// Keyboard shortcuts: Space/Enter toggle play/pause; arrows for nav
-document.addEventListener('keydown', e => {
-  const k = e.key.toLowerCase();
-  if (k === ' ' || k === 'enter'){ e.preventDefault(); onPlay(); }
-  if (k === 'arrowright') onNext();
-  if (k === 'arrowleft') onBack();
-});
+// Unlock on first real gesture
+document.addEventListener('pointerdown', ensureUnlocked, { once: true });
 
-// --- Optional: quick scanner you can run from Console to find bad files ---
-function probeSound(path, timeout = 6000) {
-  return new Promise((resolve, reject) => {
-    const a = new Audio();
-    a.preload = 'auto';
-    a.src = path;
-
-    const done = (ok) => {
-      a.src = '';
-      clearTimeout(t);
-      ok ? resolve() : reject(new Error('unplayable'));
-    };
-
-    a.addEventListener('canplaythrough', () => done(true), { once: true });
-    a.addEventListener('error', () => done(false), { once: true });
-    a.load();
-
-    const t = setTimeout(() => done(false), timeout);
-  });
-}
-
-window.aotsScan = async function aotsScan() {
-  const bad = [];
-  let ok = 0;
-
-  for (const p of sounds) {
-    if (BAD.has(p)) { bad.push(p); continue; }
-    try { await probeSound(p); ok++; }
-    catch { bad.push(p); markBad(p); }
-  }
-
-  console.log('✅ OK count:', ok);
-  console.log('❌ Bad files:', bad);
-  try { await navigator.clipboard.writeText(bad.join('\n')); } catch {}
-  alert(`Scan complete.\nOK: ${ok}\nBad: ${bad.length}\n(Bad list copied to clipboard)`);
-};
-
-window.aotsClearBad = function(){
-  localStorage.removeItem(BAD_KEY);
-  BAD = new Set();
-  console.log('Cleared bad list');
-};
-
-// Initial label
+// Initial state
 setPlayLabel();
