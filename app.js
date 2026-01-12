@@ -250,10 +250,13 @@ let history = [];
 let hpos = 0;
 let currentAudio = null;
 
+// NEW: explicit replay state
+let hasSelectedSound = false;
+
 function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
@@ -297,7 +300,7 @@ function setPlayLabel(){
   if (isPlaying()){
     el.play.textContent = "⏸ Pause";
   } else {
-    el.play.textContent = (hpos > 0) ? "▶ Play again" : "▶ Play";
+    el.play.textContent = hasSelectedSound ? "▶ Play again" : "▶ Play";
   }
 }
 
@@ -312,13 +315,14 @@ async function playPath(path){
   currentAudio = audio;
 
   audio.onerror = async () => {
-    el.status.textContent = `Error playing ${path.split('/').pop()} — skipping`;
     markBad(path);
+    hasSelectedSound = false;
     await onNext();
   };
 
   try {
     await audio.play();
+    hasSelectedSound = true;
     el.status.textContent = `Playing ${path.split('/').pop()}`;
     setPlayLabel();
     audio.onended = () => setPlayLabel();
@@ -333,33 +337,49 @@ async function onPlay(){
     setPlayLabel();
     return;
   }
-  if (hpos === 0){
-    if (!deck.length) refillDeck();
-    const first = deck.shift();
-    history.push(first);
-    hpos = history.length;
+
+  // Replay only
+  if (hasSelectedSound){
+    await playPath(current());
+    return;
   }
+
+  // First-time play only
+  if (!deck.length) refillDeck();
+  const first = deck.shift();
+  history.push(first);
+  hpos = history.length;
+  hasSelectedSound = true;
+
   await playPath(current());
 }
 
 async function onNext(){
+  hasSelectedSound = false;
   stopCurrent();
+
   if (hpos < history.length) history = history.slice(0, hpos);
   if (!deck.length) refillDeck();
+
   const cur = current();
   let pick = deck.shift();
   if (cur && pick === cur && deck.length) pick = deck.shift();
+
   history.push(pick);
   hpos = history.length;
+
   await playPath(current());
 }
 
 async function onBack(){
+  hasSelectedSound = false;
+
   if (hpos <= 1){
     el.status.textContent = "Start reached";
     setPlayLabel();
     return;
   }
+
   stopCurrent();
   hpos -= 1;
   await playPath(current());
