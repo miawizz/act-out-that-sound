@@ -236,23 +236,22 @@ function markBad(path){
   }
 }
 
-// 2) Grab UI
+// --- UI ---
 const el = {
-  play:   document.getElementById("playBtn"),
-  next:   document.getElementById("nextBtn"),
-  back:   document.getElementById("backBtn"),
+  play: document.getElementById("playBtn"),
+  next: document.getElementById("nextBtn"),
+  back: document.getElementById("backBtn"),
   status: document.getElementById("status")
 };
 
-let unlocked = false;
+// --- STATE ---
 let deck = [];
 let history = [];
-let hpos = 0;
+let index = -1;            // selected sound index
 let currentAudio = null;
+let unlocked = false;
 
-// NEW: explicit replay state
-let hasSelectedSound = false;
-
+// --- HELPERS ---
 function shuffle(a){
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -261,32 +260,19 @@ function shuffle(a){
   return a;
 }
 
-// Android-safe unlock
 async function ensureUnlocked(){
   if (unlocked) return;
   try {
     const a = new Audio(sounds[0]);
     await a.play();
     a.pause();
-    a.currentTime = 0;
     unlocked = true;
   } catch {}
 }
 
-// Build deck
-function refillDeck(){
-  const remaining = sounds.filter(p => !history.includes(p) && !BAD.has(p));
-  if (!remaining.length){
-    history = [];
-    hpos = 0;
-    deck = shuffle(sounds.filter(p => !BAD.has(p)));
-  } else {
-    deck = shuffle(remaining);
-  }
+function current(){
+  return index >= 0 ? history[index] : null;
 }
-
-function current(){ return hpos > 0 ? history[hpos - 1] : null; }
-function isPlaying(){ return currentAudio && !currentAudio.paused; }
 
 function stopCurrent(){
   if (currentAudio){
@@ -297,13 +283,15 @@ function stopCurrent(){
 }
 
 function setPlayLabel(){
-  if (isPlaying()){
-    el.play.textContent = "⏸ Pause";
-  } else {
-    el.play.textContent = hasSelectedSound ? "▶ Play again" : "▶ Play";
-  }
+  el.play.textContent = current() ? "▶ Play again" : "▶ Play";
 }
 
+// --- DECK ---
+function refillDeck(){
+  deck = shuffle(sounds.filter(p => !BAD.has(p)));
+}
+
+// --- AUDIO ---
 async function playPath(path){
   if (!path) return;
 
@@ -311,87 +299,58 @@ async function playPath(path){
   await ensureUnlocked();
 
   const audio = new Audio(path);
-  audio.preload = 'auto';
   currentAudio = audio;
 
   audio.onerror = async () => {
     markBad(path);
-    hasSelectedSound = false;
     await onNext();
   };
 
   try {
     await audio.play();
-    hasSelectedSound = true;
     el.status.textContent = `Playing ${path.split('/').pop()}`;
-    setPlayLabel();
-    audio.onended = () => setPlayLabel();
-  } catch {
-    unlocked = false;
-  }
+  } catch {}
 }
 
+// --- CONTROLS ---
 async function onPlay(){
-  if (isPlaying()){
-    currentAudio.pause();
-    setPlayLabel();
-    return;
+  // select ONCE
+  if (index === -1){
+    if (!deck.length) refillDeck();
+    history = [deck.shift()];
+    index = 0;
   }
 
-  // Replay only
-  if (hasSelectedSound){
-    await playPath(current());
-    return;
-  }
-
-  // First-time play only
-  if (!deck.length) refillDeck();
-  const first = deck.shift();
-  history.push(first);
-  hpos = history.length;
-  hasSelectedSound = true;
-
+  // replay only
   await playPath(current());
+  setPlayLabel();
 }
 
 async function onNext(){
-  hasSelectedSound = false;
   stopCurrent();
-
-  if (hpos < history.length) history = history.slice(0, hpos);
   if (!deck.length) refillDeck();
-
-  const cur = current();
-  let pick = deck.shift();
-  if (cur && pick === cur && deck.length) pick = deck.shift();
-
-  history.push(pick);
-  hpos = history.length;
-
+  history.push(deck.shift());
+  index = history.length - 1;
   await playPath(current());
+  setPlayLabel();
 }
 
 async function onBack(){
-  hasSelectedSound = false;
-
-  if (hpos <= 1){
+  if (index <= 0){
     el.status.textContent = "Start reached";
-    setPlayLabel();
     return;
   }
-
   stopCurrent();
-  hpos -= 1;
+  index--;
   await playPath(current());
+  setPlayLabel();
 }
 
-// Events
+// --- EVENTS ---
 el.play.addEventListener('click', onPlay);
 el.next.addEventListener('click', onNext);
 el.back.addEventListener('click', onBack);
+document.addEventListener('pointerdown', ensureUnlocked, { once:true });
 
-// Unlock on first real gesture
-document.addEventListener('pointerdown', ensureUnlocked, { once: true });
-
-// Initial state
+// --- INIT ---
 setPlayLabel();
