@@ -317,17 +317,19 @@ async function playPath(path){
 
 // --- CONTROLS ---
 async function onPlay(){
-  // select ONCE
-  if (index === -1){
+  // Select a sound only if none is selected yet
+  if (!selectedSound){
     if (!deck.length) refillDeck();
-    history = [deck.shift()];
+    selectedSound = deck.shift();
+    history = [selectedSound];
     index = 0;
   }
 
-  // replay only
-  await playPath(current());
+  // Replay ONLY the selected sound
+  await playPath(selectedSound);
   setPlayLabel();
 }
+
 
 async function onNext(){
   stopCurrent();
