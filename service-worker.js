@@ -1,11 +1,11 @@
 // service-worker.js — minimal + safe
-const CACHE_CORE = 'aots-core-v4';
+const CACHE_CORE = 'aots-core-v5';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './app.js?v=10',
+  './app.js?v=11',
   './icon-192.png',
   './icon-512.png',
   './icon-1024.png' // keep if you have it
