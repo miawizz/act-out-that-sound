@@ -309,11 +309,17 @@ async function playPath(path){
     await onNext();
   };
 
+  audio.onended = () => {
+    setPlayLabel();
+  };
+
   try {
     await audio.play();
     el.status.textContent = `Playing ${path.split('/').pop()}`;
+    setPlayLabel();
   } catch {}
 }
+
 
 // --- CONTROLS ---
 async function onPlay(){
