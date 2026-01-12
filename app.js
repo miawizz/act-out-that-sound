@@ -1,8 +1,6 @@
 console.log("Act Out That Sound app.js loaded!");
 
-// Act Out That Sound — single-deck surprise flow
-
-// 1) List your sound files here (UNCHANGED)
+// ---------- SOUNDS ----------
 const sounds = [
   "./sounds/animalmusic.mp3",
   "./sounds/bark.mp3",
@@ -114,263 +112,93 @@ const sounds = [
   "./sounds/yay.mp3",
   "./sounds/yeahh.mp3",
   "./sounds/yes.mp3",
-  "./sounds/yoink.mp3",
-
-  "./sounds/Awshucks.mp3",
-  "./sounds/Baby1.mp3",
-  "./sounds/Babymeow.mp3",
-  "./sounds/Badopera.mp3",
-  "./sounds/Badscat.mp3",
-  "./sounds/Beeyoww.mp3",
-  "./sounds/Blubbe.mp3",
-  "./sounds/Blubberish.mp3",
-  "./sounds/Boing.mp3",
-  "./sounds/Boredyay.mp3",
-  "./sounds/Bumbumbum.mp3",
-  "./sounds/Bumdiddlydum.mp3",
-  "./sounds/Cackle.mp3",
-  "./sounds/Cantbelieveit.mp3",
-  "./sounds/Choptimber.mp3",
-  "./sounds/Deedeedee.mp3",
-  "./sounds/Dingdongdumpcakes.mp3",
-  "./sounds/Dontmindifido.mp3",
-  "./sounds/Excuseme.mp3",
-  "./sounds/Excusemeijustfarted.mp3",
-  "./sounds/Falala.mp3",
-  "./sounds/Funnykid.mp3",
-  "./sounds/Getouttahere.mp3",
-  "./sounds/Goinggoinggone.mp3",
-  "./sounds/Goodygoody.mp3",
-  "./sounds/Googoogaagaa.mp3",
-  "./sounds/Gosh.mp3",
-  "./sounds/Gurgle.mp3",
-  "./sounds/Happybirthday.mp3",
-  "./sounds/Hehehe.mp3",
-  "./sounds/Helpme.mp3",
-  "./sounds/Herwe.mp3",
-  "./sounds/Heyhowyadoin.mp3",
-  "./sounds/Hmmmhhmm.mp3",
-  "./sounds/Hoholaugh.mp3",
-  "./sounds/Hooray.mp3",
-  "./sounds/Jokin.mp3",
-  "./sounds/Kiddingme.mp3",
-  "./sounds/Kidheheh.mp3",
-  "./sounds/Kidouch.mp3",
-  "./sounds/Laughingew.mp3",
-  "./sounds/Manouch.mp3",
-  "./sounds/Meepmeep.mp3",
-  "./sounds/Mememe.mp3",
-  "./sounds/Mmhmm.mp3",
-  "./sounds/Mmmdelicious.mp3",
-  "./sounds/Nonono.mp3",
-  "./sounds/Nottoosure.mp3",
-  "./sounds/Noway.mp3",
-  "./sounds/Ohdear.mp3",
-  "./sounds/Ohfiddlesticks.mp3",
-  "./sounds/Ohhhh.mp3",
-  "./sounds/Ohmygarsh.mp3",
-  "./sounds/Ohyaa.mp3",
-  "./sounds/Okayjolly.mp3",
-  "./sounds/Ouch1.mp3",
-  "./sounds/Ouch2.mp3",
-  "./sounds/Pleaseplease.mp3",
-  "./sounds/Pop.mp3",
-  "./sounds/Saveme.mp3",
-  "./sounds/Scat.mp3",
-  "./sounds/Sethut.mp3",
-  "./sounds/Shhh.mp3",
-  "./sounds/Sillylaugh1.mp3",
-  "./sounds/Sillylaugh2.mp3",
-  "./sounds/Sillylaugh3.mp3",
-  "./sounds/Sillylaugh4.mp3",
-  "./sounds/Sillylaugh5.mp3",
-  "./sounds/Sillylaugh6.mp3",
-  "./sounds/Sillysiren.mp3",
-  "./sounds/Sillysneeze.mp3",
-  "./sounds/Singwah.mp3",
-  "./sounds/Sohungry.mp3",
-  "./sounds/Teeheehee.mp3",
-  "./sounds/Thatwasdelicious.mp3",
-  "./sounds/Tongueclicks.mp3",
-  "./sounds/Tootsmcgee.mp3",
-  "./sounds/Touchdown.mp3",
-  "./sounds/Uhh.mp3",
-  "./sounds/Uhokay.mp3",
-  "./sounds/Wahwah.mp3",
-  "./sounds/Wehwehweh.mp3",
-  "./sounds/Weird1.mp3",
-  "./sounds/Weird2.mp3",
-  "./sounds/Weirdkidlaugh.mp3",
-  "./sounds/Weirdsinging.mp3",
-  "./sounds/Weirdsnore.mp3",
-  "./sounds/What.mp3",
-  "./sounds/Whatsthatsmell.mp3",
-  "./sounds/Whatsup.mp3",
-  "./sounds/Whattayadoin.mp3",
-  "./sounds/Whereami.mp3",
-  "./sounds/Woah.mp3",
-  "./sounds/Woohooweird.mp3",
-  "./sounds/Wow1.mp3",
-  "./sounds/Wow2.mp3",
-  "./sounds/Wow3.mp3",
-  "./sounds/Yay.mp3",
-  "./sounds/Yes.mp3",
-  "./sounds/Youdontsay.mp3",
-  "./sounds/Youshouldnthave.mp3",
-  "./sounds/Yoww.mp3",
-  "./sounds/Zeereereer.mp3",
-  "./sounds/Zzzz.mp3",
-  "./sounds/zap.mp3"
+  "./sounds/yoink.mp3"
 ];
 
-// --- Bad sound tracking (UNCHANGED) ---
-const BAD_KEY = 'aots_bad';
-let BAD = new Set();
-try { BAD = new Set(JSON.parse(localStorage.getItem(BAD_KEY) || '[]')); } catch {}
-function saveBad(){ localStorage.setItem(BAD_KEY, JSON.stringify([...BAD])); }
-function markBad(path){
-  if (!BAD.has(path)) {
-    BAD.add(path);
-    saveBad();
-    console.warn('Marked bad sound:', path);
-  }
-}
+// ---------- UI ----------
+const playBtn = document.getElementById("playBtn");
+const nextBtn = document.getElementById("nextBtn");
+const backBtn = document.getElementById("backBtn");
+const statusEl = document.getElementById("status");
 
-// --- UI ---
-const el = {
-  play: document.getElementById("playBtn"),
-  next: document.getElementById("nextBtn"),
-  back: document.getElementById("backBtn"),
-  status: document.getElementById("status")
-};
-
-// --- STATE ---
-let deck = [];
+// ---------- STATE ----------
+let currentIndex = -1;
 let history = [];
-let index = -1;            // selected sound index
-let currentAudio = null;
-let unlocked = false;
-let selectedSound = null;  // SINGLE source of truth
+let audio = null;
+let isPlaying = false;
 
+// ---------- HELPERS ----------
+function randomIndex() {
+  return Math.floor(Math.random() * sounds.length);
+}
 
-// --- HELPERS ---
-function shuffle(a){
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+function stopAudio() {
+  if (audio) {
+    audio.pause();
+    audio.currentTime = 0;
+    audio = null;
   }
-  return a;
+  isPlaying = false;
 }
 
-async function ensureUnlocked(){
-  if (unlocked) return;
-  try {
-    const a = new Audio(sounds[0]);
-    await a.play();
-    a.pause();
-    unlocked = true;
-  } catch {}
-}
-
-function current(){
-  return selectedSound;
-}
-
-
-function stopCurrent(){
-  if (currentAudio){
-    currentAudio.pause();
-    currentAudio.src = '';
-    currentAudio = null;
+function updatePlayLabel() {
+  if (isPlaying) {
+    playBtn.textContent = "⏸ Pause";
+  } else if (currentIndex !== -1) {
+    playBtn.textContent = "▶ Play again";
+  } else {
+    playBtn.textContent = "▶ Play";
   }
 }
 
-function setPlayLabel(){
-  el.play.textContent = current() ? "▶ Play again" : "▶ Play";
-}
+function playSound(index) {
+  stopAudio();
 
-// --- DECK ---
-function refillDeck(){
-  deck = shuffle(sounds.filter(p => !BAD.has(p)));
-}
+  audio = new Audio(sounds[index]);
+  isPlaying = true;
+  updatePlayLabel();
 
-// --- AUDIO ---
-async function playPath(path){
-  if (!path) return;
-
-  stopCurrent();
-  await ensureUnlocked();
-
-  const audio = new Audio(path);
-  currentAudio = audio;
-
-  audio.onerror = async () => {
-    markBad(path);
-    await onNext();
-  };
+  audio.play();
+  statusEl.textContent = `Playing ${sounds[index].split("/").pop()}`;
 
   audio.onended = () => {
-    setPlayLabel();
+    isPlaying = false;
+    updatePlayLabel();
   };
-
-  try {
-    await audio.play();
-    el.status.textContent = `Playing ${path.split('/').pop()}`;
-    setPlayLabel();
-  } catch {}
 }
 
-
-// --- CONTROLS ---
-async function onPlay(){
-  // Select a sound only if none is selected yet
-  if (!selectedSound){
-    if (!deck.length) refillDeck();
-    selectedSound = deck.shift();
-    history = [selectedSound];
-    index = 0;
-  }
-
-  // Replay ONLY the selected sound
-  await playPath(selectedSound);
-  setPlayLabel();
-}
-
-
-async function onNext(){
-  stopCurrent();
-
-  if (!deck.length) refillDeck();
-
-  selectedSound = deck.shift();
-  history.push(selectedSound);
-  index = history.length - 1;
-
-  await playPath(selectedSound);
-  setPlayLabel();
-}
-
-
-async function onBack(){
-  if (index <= 0){
-    el.status.textContent = "Start reached";
+// ---------- CONTROLS ----------
+playBtn.addEventListener("click", () => {
+  if (isPlaying) {
+    stopAudio();
+    updatePlayLabel();
     return;
   }
 
-  stopCurrent();
-  index--;
+  if (currentIndex === -1) {
+    currentIndex = randomIndex();
+    history.push(currentIndex);
+  }
 
-  selectedSound = history[index];
-  await playPath(selectedSound);
-  setPlayLabel();
-}
+  playSound(currentIndex);
+});
 
+nextBtn.addEventListener("click", () => {
+  currentIndex = randomIndex();
+  history.push(currentIndex);
+  playSound(currentIndex);
+});
 
-// --- EVENTS ---
-el.play.addEventListener('click', onPlay);
-el.next.addEventListener('click', onNext);
-el.back.addEventListener('click', onBack);
-document.addEventListener('pointerdown', ensureUnlocked, { once:true });
+backBtn.addEventListener("click", () => {
+  if (history.length <= 1) {
+    statusEl.textContent = "Start reached";
+    return;
+  }
 
-// --- INIT ---
-setPlayLabel();
+  history.pop();
+  currentIndex = history[history.length - 1];
+  playSound(currentIndex);
+});
+
+// ---------- INIT ----------
+updatePlayLabel();
