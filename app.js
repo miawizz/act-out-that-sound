@@ -333,12 +333,17 @@ async function onPlay(){
 
 async function onNext(){
   stopCurrent();
+
   if (!deck.length) refillDeck();
-  history.push(deck.shift());
+
+  selectedSound = deck.shift();
+  history.push(selectedSound);
   index = history.length - 1;
-  await playPath(current());
+
+  await playPath(selectedSound);
   setPlayLabel();
 }
+
 
 async function onBack(){
   if (index <= 0){
