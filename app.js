@@ -350,11 +350,15 @@ async function onBack(){
     el.status.textContent = "Start reached";
     return;
   }
+
   stopCurrent();
   index--;
-  await playPath(current());
+
+  selectedSound = history[index];
+  await playPath(selectedSound);
   setPlayLabel();
 }
+
 
 // --- EVENTS ---
 el.play.addEventListener('click', onPlay);
