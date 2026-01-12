@@ -1,5 +1,5 @@
 // service-worker.js — minimal + safe
-const CACHE_CORE = 'aots-core-v3';
+const CACHE_CORE = 'aots-core-v4';
 
 const CORE_ASSETS = [
   './',
