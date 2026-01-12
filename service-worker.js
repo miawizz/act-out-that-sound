@@ -5,7 +5,7 @@ const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './app.js',
+  './app.js?v=10',
   './icon-192.png',
   './icon-512.png',
   './icon-1024.png' // keep if you have it
