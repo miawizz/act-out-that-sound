@@ -70,9 +70,34 @@
       transition:opacity .25s ease, transform .25s ease; font-size:.95rem; z-index:9999;
     }
     #toast.show{opacity:1; transform:translateX(-50%) translateY(-4px)}
+
+    /* Back to Hub button */
+.home-button{
+  position:fixed;
+  top:12px;
+  left:12px;
+  background:rgba(0,0,0,.75);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:14px;
+  text-decoration:none;
+  z-index:10002;
+}
+
+/* Prevent overlap with content */
+body{
+  padding-top:3.5rem;
+}
+
+    
   </style>
 </head>
 <body>
+  <a href="https://miawizz.github.io/php-app-hub/" class="home-button">
+  ← Back to Hub
+</a>
+
 
 <!-- install-help bar copied from YOU ARE, namespaced for this app -->
 <style>
