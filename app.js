@@ -1,4 +1,4 @@
-console.log("Act Out That Sound app.js loaded!");
+console.log("Act Out That Sound app.js loaded");
 
 // ---------- SOUNDS ----------
 const sounds = [
@@ -125,53 +125,39 @@ const statusEl = document.getElementById("status");
 let currentIndex = -1;
 let history = [];
 let audio = null;
-let isPlaying = false;
 
 // ---------- HELPERS ----------
 function randomIndex() {
   return Math.floor(Math.random() * sounds.length);
 }
 
-function stopAudio() {
+function stopSound() {
   if (audio) {
     audio.pause();
-    audio.currentTime = 0;
     audio = null;
   }
-  isPlaying = false;
+  playBtn.textContent = currentIndex === -1 ? "▶ Play" : "▶ Play again";
 }
 
-function updatePlayLabel() {
-  if (isPlaying) {
-    playBtn.textContent = "⏸ Pause";
-  } else if (currentIndex !== -1) {
-    playBtn.textContent = "▶ Play again";
-  } else {
-    playBtn.textContent = "▶ Play";
-  }
-}
-
+// ---------- PLAY ----------
 function playSound(index) {
-  stopAudio();
+  stopSound();
 
   audio = new Audio(sounds[index]);
-  isPlaying = true;
-  updatePlayLabel();
-
-  audio.play();
+  playBtn.textContent = "⏸ Pause";
   statusEl.textContent = `Playing ${sounds[index].split("/").pop()}`;
 
+  audio.play();
+
   audio.onended = () => {
-    isPlaying = false;
-    updatePlayLabel();
+    stopSound();
   };
 }
 
-// ---------- CONTROLS ----------
+// ---------- EVENTS ----------
 playBtn.addEventListener("click", () => {
-  if (isPlaying) {
-    stopAudio();
-    updatePlayLabel();
+  if (audio) {
+    stopSound();
     return;
   }
 
@@ -201,4 +187,4 @@ backBtn.addEventListener("click", () => {
 });
 
 // ---------- INIT ----------
-updatePlayLabel();
+stopSound();
