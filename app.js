@@ -250,6 +250,8 @@ let history = [];
 let index = -1;            // selected sound index
 let currentAudio = null;
 let unlocked = false;
+let selectedSound = null;  // SINGLE source of truth
+
 
 // --- HELPERS ---
 function shuffle(a){
