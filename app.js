@@ -273,8 +273,9 @@ async function ensureUnlocked(){
 }
 
 function current(){
-  return index >= 0 ? history[index] : null;
+  return selectedSound;
 }
+
 
 function stopCurrent(){
   if (currentAudio){
